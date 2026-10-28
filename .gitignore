@@ -174,3 +174,4 @@ cython_debug/
 __pycache__
 .flake8
 log.txt
+data/vacancies.json

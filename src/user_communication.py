@@ -1,28 +1,23 @@
 from src.vacancies import Vacancy
 
 
-def sort_vacancies(vacancies_list):
-    """Функция для сортировки вакансий"""
-
-    sorted_vacancies = sorted(vacancies_list, key=lambda x: x.salary, reverse=True)
-    return sorted_vacancies
+def sort_vacancies(vacancies_list: list[Vacancy]) -> list[Vacancy]:
+    """Sort vacancies by salary in descending order."""
+    return sorted(vacancies_list, key=lambda vacancy: vacancy.salary, reverse=True)
 
 
-def get_top_vacancies(vacancies_list: list[dict], top_n: int) -> list[dict]:
-    """Функция для получения топ n вакансий"""
-
-    return vacancies_list[:top_n]
-
-
-def filter_vacancies(vacancies_list: list[dict[Vacancy]], filter_words: list) -> list[dict[Vacancy]]:
-    """Функция фильтрации вакансий"""
-
+def filter_vacancies(vacancies_list: list[Vacancy], filter_words: list) -> list[Vacancy]:
+    """Filter vacancies by keywords in their requirements."""
     filtered_list = []
+    normalized_words = [word.casefold() for word in filter_words]
+
     for vacancy in vacancies_list:
-        for filter_word in filter_words:
-            if vacancy.requirement is not None:
-                if filter_word in vacancy.requirement and vacancy not in filtered_list:
-                    filtered_list.append(vacancy)
-            # else:
-            #     continue
+        requirement = vacancy.requirement
+        if requirement is None:
+            continue
+        requirement = requirement.casefold()
+
+        if any(word in requirement for word in normalized_words):
+            filtered_list.append(vacancy)
+
     return filtered_list

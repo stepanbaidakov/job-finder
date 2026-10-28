@@ -1,10 +1,10 @@
 class Vacancy:
-    """Класс для работы с вакансиями"""
+    """Class for working with vacancies."""
 
     name: str
     url: str
-    salary: str
-    requirement: str
+    salary: int | float
+    requirement: str | None
 
     __slots__ = ("name", "url", "salary", "requirement")
 
@@ -16,106 +16,60 @@ class Vacancy:
         self.salary = validated_salary
         self.requirement = requirement
 
+
     def __validate_salary(self, salary):
-        if salary is None:
-            salary = 0
-        return salary
+        return salary if salary is not None else 0
+
 
     @classmethod
-    def cast_to_object_list(cls, vacancies_dict: dict):
-        """Функция переобразует словарь в объекты класса Vacаncy"""
-        if vacancies_dict.get("salary") is None:
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary"),
-                vacancies_dict.get("snippet").get("requirement"),
-            )
+    def cast_to_object(cls, vacancy_dict: dict) -> "Vacancy":
+        """Convert a dictionary into a Vacancy object."""
 
-        elif (
-            vacancies_dict.get("salary").get("from") is not None
-            and vacancies_dict.get("salary").get("currency") == "BYR"
-        ):
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary").get("from") * 25,
-                # print(vacancies_dict.get("salary")),
-                vacancies_dict.get("snippet").get("requirement"),
-            )
+        salary_data = vacancy_dict.get("salary") or {}
+        snippet = vacancy_dict.get("snippet") or {}
 
-        elif (
-            vacancies_dict.get("salary").get("to") is not None
-            and vacancies_dict.get("salary").get("currency") == "USD"
-        ):
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary").get("to") * 83,
-                vacancies_dict.get("snippet").get("requirement"),
-            )
+        salary_from = salary_data.get("from")
+        salary_to = salary_data.get("to")
+        currency = salary_data.get("currency")
 
-        elif (
-            vacancies_dict.get("salary").get("to") is not None
-            and vacancies_dict.get("salary").get("currency") == "KZT"
-        ):
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary").get("to") * 0.15,
-                vacancies_dict.get("snippet").get("requirement"),
-            )
+        currency_rates = {
+            "BYR": 25,
+            "USD": 83,
+            "KZT": 0.15,
+            "UZS": 0.0066,
+            "KGS": 0.92,
+        }
 
-        elif (
-            vacancies_dict.get("salary").get("to") is not None
-            and vacancies_dict.get("salary").get("currency") == "UZS"
-        ):
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary").get("to") * 0.0066,
-                vacancies_dict.get("snippet").get("requirement"),
-            )
-
-        elif (
-            vacancies_dict.get("salary").get("to") is not None
-            and vacancies_dict.get("salary").get("currency") == "KGS"
-        ):
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary").get("to") * 0.92,
-                vacancies_dict.get("snippet").get("requirement"),
-            )
-
-        elif vacancies_dict.get("salary").get("to") is None and vacancies_dict.get("salary").get("currency") == "RUR":
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary").get("from"),
-                vacancies_dict.get("snippet").get("requirement"),
-            )
+        if currency == "RUR":
+            salary = salary_from if salary_to is None else salary_to
+        elif currency in currency_rates:
+            salary = salary_from if salary_to is None else salary_to
+            if salary is not None:
+                salary = currency_rates[currency] * salary
         else:
-            return cls(
-                vacancies_dict.get("name"),
-                vacancies_dict.get("url"),
-                vacancies_dict.get("salary").get("to"),
-                vacancies_dict.get("snippet").get("requirement"),
-            )
+            salary = salary_from if salary_to is None else salary_to
 
-    def __lt__(self, other) -> int:
-        """Функция возвращает True если первый меньше второго"""
+        return cls(
+            name=vacancy_dict.get("name"),
+            url=vacancy_dict.get("url"),
+            salary=salary,
+            requirement=snippet.get("requirement"),
+        )
 
-        if isinstance(other, Vacancy):
-            return self.salary < other.salary
+    def __lt__(self, other) -> bool:
+        """Return True if this vacancy has a lower salary than the other."""
 
-    def __gt__(self, other) -> int:
-        """Функция возвращает True если первый больше второго"""
+        if not isinstance(other, Vacancy):
+            return NotImplemented
+        return self.salary < other.salary
 
-        if isinstance(other, Vacancy):
-            return self.salary > other.salary
+    def __gt__(self, other) -> bool:
+        """Return True if this vacancy has a higher salary than the other."""
+
+        if not isinstance(other, Vacancy):
+            return NotImplemented
+        return self.salary > other.salary
 
     def to_json(self) -> dict:
-        """Функция приводит объект класса Vacancy к словарю"""
-
+        """Convert the Vacancy object into a dictionary."""
         return {"name": self.name, "url": self.url, "salary": self.salary, "requirements": self.requirement}
