@@ -29,6 +29,24 @@ black = "^25.9.0"
 
 [tool.black]
 line-length = 119
+extend-exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
 
 [tool.isort]
-line-length = 119
+profile = "black"
+line_length = 119
+skip_gitignore = true
+extend_skip = [".venv", "venv", "build", "dist"]
+
+[tool.mypy]
+files = ["src", "tests"]
+exclude = '(^|/)(\.venv|venv|build|dist)/'
+ignore_missing_imports = true
+check_untyped_defs = true

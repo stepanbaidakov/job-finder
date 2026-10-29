@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 class HhAPI(ABC):
     """Base class for interacting with the API."""
@@ -28,9 +30,7 @@ class HhRu(HhAPI):
             raise ValueError("ACCESS_TOKEN is required.")
 
         self.session = requests.Session()
-        self.session.headers.update({
-            "Authorization": f"Bearer {access_token}"
-        })
+        self.session.headers.update({"Authorization": f"Bearer {access_token}"})
 
     def _connect_to_api(self, url: str, params: dict):
         """Connect to the API."""
@@ -50,12 +50,7 @@ class HhRu(HhAPI):
             return []
         max_results = min(top_n, 2000)
         per_page = min(100, max_results)
-        params = {
-            "text": key_word,
-            "search_field": "name",
-            "per_page": per_page,
-            "page": 0
-        }
+        params = {"text": key_word, "search_field": "name", "per_page": per_page, "page": 0}
 
         vacancies = []
         url = "https://api.hh.ru/vacancies"
@@ -64,20 +59,14 @@ class HhRu(HhAPI):
             data = self._connect_to_api(url, params)
             items = data.get("items", [])
             if not items:
-                print(
-                    f"Requested {max_results} vacancies, "
-                    f"but only {len(vacancies)} were found."
-                )
+                print(f"Requested {max_results} vacancies, " f"but only {len(vacancies)} were found.")
                 break
             remaining = max_results - len(vacancies)
             vacancies.extend(items[:remaining])
             if len(vacancies) >= max_results:
                 break
             if params["page"] + 1 >= data.get("pages", 0):
-                print(
-                    f"Requested {max_results} vacancies, "
-                    f"but only {len(vacancies)} were found."
-                )
+                print(f"Requested {max_results} vacancies, " f"but only {len(vacancies)} were found.")
                 break
             params["page"] += 1
 

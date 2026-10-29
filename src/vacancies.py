@@ -16,15 +16,12 @@ class Vacancy:
         self.salary = validated_salary
         self.requirement = requirement
 
-
     def __validate_salary(self, salary):
         return salary if salary is not None else 0
-
 
     @classmethod
     def cast_to_object(cls, vacancy_dict: dict) -> "Vacancy":
         """Convert a dictionary into a Vacancy object."""
-
         salary_data = vacancy_dict.get("salary") or {}
         snippet = vacancy_dict.get("snippet") or {}
 
@@ -72,4 +69,4 @@ class Vacancy:
 
     def to_json(self) -> dict:
         """Convert the Vacancy object into a dictionary."""
-        return {"name": self.name, "url": self.url, "salary": self.salary, "requirements": self.requirement}
+        return {"name": self.name, "url": self.url, "salary": self.salary, "requirement": self.requirement}

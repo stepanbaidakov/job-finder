@@ -1,8 +1,9 @@
 import os
-from src.hh_api import HhRu
-from src.vacancies import Vacancy
-from src.user_communication import filter_vacancies
+
 from src.file_worker import JSONSaver
+from src.hh_api import HhRu
+from src.user_communication import filter_vacancies
+from src.vacancies import Vacancy
 
 
 def main():
