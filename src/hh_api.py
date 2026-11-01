@@ -1,9 +1,13 @@
 from abc import ABC, abstractmethod
+
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class HhAPI(ABC):
-    """Базовый класс для взаимодействия с API"""
+    """Base class for interacting with the API."""
 
     @abstractmethod
     def __init__(self):
@@ -14,38 +18,56 @@ class HhAPI(ABC):
         pass
 
     @abstractmethod
-    def get_vacancies(self, key_word, per_page):
+    def get_vacancies(self, key_word, top_n):
         pass
 
 
 class HhRu(HhAPI):
-    """Класс для взаимодействия с api"""
+    """Class for interacting with the API."""
 
-    def __init__(self):
-        self.__url = "https://api.hh.ru/vacancies"
-        self.__params = {"text": "", "page": 0, "per_page": 100}
-        self.__vacancies = []
+    def __init__(self, access_token: str):
+        if not access_token:
+            raise ValueError("ACCESS_TOKEN is required.")
+
+        self.session = requests.Session()
+        self.session.headers.update({"Authorization": f"Bearer {access_token}"})
 
     def _connect_to_api(self, url: str, params: dict):
-        """Метод подключения к api"""
-
+        """Connect to the API."""
         return self.__connect_to_api(url, params)
 
-    def __connect_to_api(self, url: str, params: dict):
-        response = requests.get(url, params)
-        if response.status_code >= 400:
-            return response.raise_for_status()
-        else:
-            return response.json()
+    def __connect_to_api(self, url: str, params: dict) -> dict:
+        response = self.session.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
 
-    def get_vacancies(self, keyword: str, per_page: int =100) -> list[dict]:
-        """Метод получения вакансий в виде списка словарей"""
+    def get_vacancies(self, key_word: str, top_n: int) -> list[dict]:
+        """Retrieve vacancies as a list of dictionaries."""
 
-        self.__params["text"] = keyword
-        self.__params["per_page"] = per_page
-        while self.__params.get("page") != 1:
-            response = self._connect_to_api(self.__url, self.__params)
-            data = response["items"]
-            self.__vacancies.extend(data)
-            self.__params["page"] += 1
-        return self.__vacancies
+        if top_n < 0:
+            raise ValueError("top_n is required.")
+        if top_n == 0:
+            return []
+        max_results = min(top_n, 2000)
+        per_page = min(100, max_results)
+        params = {"text": key_word, "search_field": "name", "per_page": per_page, "page": 0}
+
+        vacancies = []
+        url = "https://api.hh.ru/vacancies"
+
+        while len(vacancies) < max_results:
+            data = self._connect_to_api(url, params)
+            items = data.get("items", [])
+            if not items:
+                print(f"Requested {max_results} vacancies, " f"but only {len(vacancies)} were found.")
+                break
+            remaining = max_results - len(vacancies)
+            vacancies.extend(items[:remaining])
+            if len(vacancies) >= max_results:
+                break
+            if params["page"] + 1 >= data.get("pages", 0):
+                print(f"Requested {max_results} vacancies, " f"but only {len(vacancies)} were found.")
+                break
+            params["page"] += 1
+
+        return vacancies

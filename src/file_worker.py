@@ -1,65 +1,67 @@
 import json
 import os.path
 from abc import ABC, abstractmethod
+from typing import Any
 
 from config import DATA_DIR
 
 
 class BaseJSONSaver(ABC):
-    """Базовый класс для взаимодействия с api"""
+    """Base class for working with the API."""
 
     @abstractmethod
-    def add_vacancies_to_file(self, vacancies):
+    def add_vacancies_to_file(self, vacancies: list[dict[str, Any]]) -> None:
         pass
 
     @abstractmethod
-    def get_vacancies_from_file(self, url):
+    def get_vacancies_from_file(self, urls: list[str]) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
-    def delete_vacancies(self):
+    def delete_vacancies(self) -> None:
         pass
 
 
 class JSONSaver(BaseJSONSaver):
-    """Класс для работы с файлом"""
+    """Class for working with a file."""
 
     file_name: str
 
-    def __init__(self, file_name: str ="vacancies.json"):
-        self.__file_name = file_name
+    def __init__(self, file_name: str = "vacancies.json"):
+        self.__file_path = os.path.join(DATA_DIR, file_name)
 
-    def add_vacancies_to_file(self, vacancies: list):
-        """Метод добавляет вакансии в файл"""
-
+    def _read_data(self) -> list[dict[str, Any]]:
+        """Read vacancies from the file."""
         try:
-            with open(os.path.join(DATA_DIR, self.__file_name), "r", encoding="utf-8") as f:
-                data = json.load(f)  # читаем уже существующие
-        except json.decoder.JSONDecodeError:
-            data = []
+            with open(self.__file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
         except FileNotFoundError:
-            data = []
-        for vacancy in vacancies:
-            if vacancy not in data:
-                data.append(vacancy)
+            return []
 
-        with open(os.path.join(DATA_DIR, self.__file_name), "w", encoding="utf-8") as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
+    def _write_data(self, data: list[dict[str, Any]]) -> None:
+        """Write vacancies to the file."""
+        with open(self.__file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+    def add_vacancies_to_file(self, vacancies: list[dict[str, Any]]) -> None:
+        """Add vacancies to the file."""
+        data = self._read_data()
+        existing_urls = {vacancy["url"] for vacancy in data}
+        new_vacancies_found = False
+        for vacancy in vacancies:
+            if vacancy["url"] not in existing_urls:
+                data.append(vacancy)
+                existing_urls.add(vacancy["url"])
+                new_vacancies_found = True
+        if new_vacancies_found:
+            self._write_data(data)
 
     def get_vacancies_from_file(self, urls: list) -> list:
-        """Метод возвращает вакансии по ссылкам"""
-
-        with open(os.path.join(DATA_DIR, self.__file_name), "r", encoding="utf-8") as file:
-            data = json.load(file)
-        result = []
-        for vacancy in data:
-            for url in urls:
-                if url in vacancy["url"]:
-                    result.append(vacancy)
-        return result
+        """Return vacancies matching the provided URLs."""
+        data = self._read_data()
+        url_set = set(urls)
+        return [vacancy for vacancy in data if vacancy["url"] in url_set]
 
     def delete_vacancies(self):
-        """Метод удаляет все содержимое файла"""
-
-        with open(os.path.join(DATA_DIR, self.__file_name), "w"):
-            pass
+        """Clear all vacancies from the file."""
+        self._write_data([])

@@ -1,11 +1,12 @@
 import pytest
+
 from src.hh_api import HhRu
 from src.vacancies import Vacancy
 
 
 @pytest.fixture
 def hh_ru():
-    return HhRu()
+    return HhRu("test_access_token")
 
 
 @pytest.fixture
@@ -28,4 +29,14 @@ def vacancy_2():
         110000,
         "Умение писать запросы и работать с базами данных (SQL).  Базовое владение "
         "<highlighttext>Python</highlighttext> для анализа информации.  Понимание основ статистики и вероятности.  ",
+    )
+
+
+@pytest.fixture
+def vacancy_without_requirement():
+    return Vacancy(
+        "Python Developer",
+        "https://api.hh.ru/vacancies/123456?host=hh.ru",
+        90000,
+        None,
     )

@@ -1,39 +1,36 @@
-from src.hh_api import HhRu
-from src.vacancies import Vacancy
-from src.user_communication import get_top_vacancies, filter_vacancies
+import os
+
 from src.file_worker import JSONSaver
+from src.hh_api import HhRu
+from src.user_communication import filter_vacancies
+from src.vacancies import Vacancy
 
 
 def main():
-    """Функция взаимодействия с пользователем"""
+    """Interact with the user."""
+    search_query = input("Enter a job title to search for: ")
+    top_n = int(input("Enter the number of top vacancies to display: "))
+    all_filter_words = input("Enter keywords to filter vacancies: ").split(",")
 
-    search_query = input("Введите запрос по профессии: ")
-    top_n = int(input("Введите количество вакансий для вывода в топ N: "))
-    all_filter_words = input("Введите слова для фильтрации вакансий со строчной буквы: ").split(",")
+    access_token = os.getenv("ACCESS_TOKEN")
 
-    filter_words_1 = "знания".split(",")
-    all_filter_words.extend(filter_words_1)
-    for filter_word in filter_words_1:
-        filter_word_2 = filter_word.title()
-        all_filter_words.append(filter_word_2)
+    if not access_token:
+        raise ValueError("ACCESS_TOKEN is not set.")
 
-    hh_api = HhRu()
-    hh_vacancies = hh_api.get_vacancies(search_query)
-    vacancies_list = [Vacancy.cast_to_object_list(v) for v in hh_vacancies]
+    hh_api = HhRu(access_token)
+    hh_vacancies = hh_api.get_vacancies(search_query, top_n)
+    vacancies_list = [Vacancy.cast_to_object(vacancy) for vacancy in hh_vacancies]
     filtered_list = filter_vacancies(vacancies_list, all_filter_words)
-    top_vacancies = get_top_vacancies(filtered_list, top_n)
 
-    final_list = []
-    for vacancy in top_vacancies:
-        print(vacancy.to_json())
-        final_list.append(vacancy.to_json())
+    final_list = [vacancy.to_json() for vacancy in filtered_list]
 
     file_saver = JSONSaver()
     file_saver.add_vacancies_to_file(final_list)
 
-    get_vacancies_input = input("Хотите получить вакансии из файла. Да/Нет: ").lower()
-    if get_vacancies_input == "да":
-        urls_input = input("Введите ссылку на вакансию, которую Вы ищете: ").split(", ")
+    get_vacancies_input = input("Would you like to retrieve vacancies from the file? Yes/No: ").lower()
+
+    if get_vacancies_input == "yes":
+        urls_input = input("Enter the URL(s) of the vacancy/vacancies you are looking for: ").split(", ")
         got_vacancies = file_saver.get_vacancies_from_file(urls_input)
         print(got_vacancies)
     else:
